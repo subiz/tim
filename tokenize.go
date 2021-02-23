@@ -19,11 +19,12 @@ func tokenize(str string) []string {
 	var prevtoken []rune
 	// TODO psrc
 	str += " "
-	for _, r := range str {
+	rarr := []rune(str)
+	for i, r := range rarr {
 		if iter == ' ' && r == ' ' {
 			continue
 		}
-		if _, has := Str_split_map[r]; has {
+		if _, has := Str_split_map[r]; has || (r == '.' && rarr[i+1] == ' ') {
 			if len(token) > 0 && !STOP_WORDS[string(token)] && isLiteral(&token) {
 				literals = append(literals, &MatchLiteral{Str: string(token)})
 			}
@@ -60,7 +61,7 @@ func tokenize(str string) []string {
 }
 
 func isLiteral(token *[]rune) bool {
-	if len(*token) > 45 {
+	if len(*token) < 3 || len(*token) > 45 {
 		return false
 	}
 	// TODO first consonants
