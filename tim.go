@@ -140,7 +140,7 @@ func Search(collection, accid, ownerid, query string) ([]string, error) {
 	// contain all matched doc
 	match := map[string]bool{}
 	for termindex, term := range terms {
-		iter := db.Query("SELECT doc FROM term_doc WHERE col=? AND acc=? AND term=?", collection, accid, term).Iter()
+		iter := db.Query("SELECT doc FROM tim.term_doc WHERE col=? AND acc=? AND term=?", collection, accid, term).Iter()
 		var docid string
 		localMatch := map[string]bool{}
 		for iter.Scan(&docid) {
@@ -195,9 +195,9 @@ func ClearText(collection, accid, docId string) error {
 	waitforstartup(collection, accid)
 
 	var term string
-	iter := db.Query("SELECT term FROM doc_term WHERE col=? AND acc=? AND doc=?", collection, accid, docId).Iter()
+	iter := db.Query("SELECT term FROM tim.doc_term WHERE col=? AND acc=? AND doc=?", collection, accid, docId).Iter()
 	for iter.Scan(&term) {
-		if err := db.Query("DELETE FROM term_doc WHERE col=? AND acc=? AND term=? AND doc=?", collection, accid, term, docId).Exec(); err != nil {
+		if err := db.Query("DELETE FROM tim.term_doc WHERE col=? AND acc=? AND term=? AND doc=?", collection, accid, term, docId).Exec(); err != nil {
 			return err
 		}
 	}
@@ -205,7 +205,7 @@ func ClearText(collection, accid, docId string) error {
 		return err
 	}
 
-	if err := db.Query("DELETE FROM doc_term WHERE col=? AND acc=? AND AND doc=?", collection, accid, docId).Exec(); err != nil {
+	if err := db.Query("DELETE FROM tim.doc_term WHERE col=? AND acc=? AND AND doc=?", collection, accid, docId).Exec(); err != nil {
 		return err
 	}
 	return nil
@@ -215,14 +215,14 @@ func AppendText(collection, accid, docId, text string) error {
 	waitforstartup(collection, accid)
 	terms := tokenize(text)
 	for _, term := range terms {
-		if err := db.Query("INSERT INTO term_doc(col, acc, term, doc) VALUES(?,?,?,?)", collection, accid, term, docId).Exec(); err != nil {
+		if err := db.Query("INSERT INTO tim.term_doc(col, acc, term, doc) VALUES(?,?,?,?)", collection, accid, term, docId).Exec(); err != nil {
 			return err
 		}
-		if err := db.Query("INSERT INTO doc_term(col, acc, term, doc) VALUES(?,?,?,?)", collection, accid, term, docId).Exec(); err != nil {
+		if err := db.Query("INSERT INTO tim.doc_term(col, acc, term, doc) VALUES(?,?,?,?)", collection, accid, term, docId).Exec(); err != nil {
 			return err
 		}
 		par := hash(term) % TERM_PAR
-		if err := db.Query("INSERT INTO term(col, acc, par, term) VALUES(?,?,?,?)", collection, accid, par, term).Exec(); err != nil {
+		if err := db.Query("INSERT INTO tim.term(col, acc, par, term) VALUES(?,?,?,?)", collection, accid, par, term).Exec(); err != nil {
 			return err
 		}
 		return nil
@@ -234,7 +234,7 @@ func UpdateOwner(collection, accid, docId string, owners []string) error {
 	waitforstartup(collection, accid)
 
 	par := hash(docId) % PAR
-	err := db.Query("INSERT INTO owner(col,acc,par,doc,owners) VALUES(?,?,?,?,?)", collection, accid, par, docId, owners).Exec()
+	err := db.Query("INSERT INTO tim.owner(col,acc,par,doc,owners) VALUES(?,?,?,?,?)", collection, accid, par, docId, owners).Exec()
 	if err != nil {
 		return err
 	}
@@ -308,7 +308,7 @@ func waitforstartup(collection, accid string) {
 
 	// should parallel ?
 	for par := 0; par < PAR; par++ {
-		iter := db.Query("SELECT doc, owners FROM onwer WHERE col=? AND acc=? AND par=?", collection, accid, par).Iter()
+		iter := db.Query("SELECT doc, owners FROM tim.owner WHERE col=? AND acc=? AND par=?", collection, accid, par).Iter()
 		var docid string
 		var owners []string
 		for iter.Scan(&docid, &owners) {
