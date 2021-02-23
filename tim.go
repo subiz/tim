@@ -218,7 +218,7 @@ func AppendText(collection, accid, docId, text string) error {
 		if err := db.Query("INSERT INTO term_doc(col, acc, term, doc) VALUES(?,?,?,?)", collection, accid, term, docId).Exec(); err != nil {
 			return err
 		}
-		if err := db.Query("INSERT INTO term_doc(col, acc, term, doc) VALUES(?,?,?,?)", collection, accid, term, docId).Exec(); err != nil {
+		if err := db.Query("INSERT INTO doc_term(col, acc, term, doc) VALUES(?,?,?,?)", collection, accid, term, docId).Exec(); err != nil {
 			return err
 		}
 		par := hash(term) % TERM_PAR
