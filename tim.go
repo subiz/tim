@@ -351,3 +351,34 @@ func isASCII(s string) bool {
 	}
 	return true
 }
+
+func Report(collection string) {
+	// connect db
+	cluster := gocql.NewCluster("db-0")
+	cluster.Timeout = 10 * time.Second
+	cluster.Keyspace = "tim"
+	var err error
+	for {
+		if db, err = cluster.CreateSession(); err == nil {
+			break
+		}
+		fmt.Println("cassandra", err, ". Retring after 5sec...")
+		time.Sleep(5 * time.Second)
+	}
+
+	// filter all data
+
+	// top 100 term
+	// random 1000
+	full := map[string]int{}
+	iter := db.Query("SELECT term FROM tim.term_doc").Iter()
+	term := ""
+	for iter.Scan(&term) {
+		full[term]++
+	}
+	if err := iter.Close(); err != nil {
+		panic(err)
+	}
+
+	fmt.Println(drawGraph(full))
+}
