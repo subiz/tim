@@ -71,56 +71,6 @@ import (
 // see http://www.clc.hcmus.edu.vn/?page_id=1507
 var STOP_WORDS = map[string]bool{"va": true, "cua": true, "co": true, "cac": true, "la": true}
 
-func tokenize(text string) []string {
-	text = strings.ToLower(toASCII(text))
-	text = strings.Replace(text, "\t", " ", -1)
-	text = strings.Replace(text, ".", " ", -1)
-	text = strings.Replace(text, ",", " ", -1)
-	text = strings.Replace(text, ";", " ", -1)
-	text = strings.Replace(text, "<", " ", -1)
-	text = strings.Replace(text, ">", " ", -1)
-	text = strings.Replace(text, "\n", " ", -1)
-
-	tokens := strings.Split(text, " ")
-	singleWordTerms := []string{}
-
-	for _, token := range tokens {
-		if token == "" {
-			continue
-		}
-		if STOP_WORDS[token] {
-			continue
-		}
-
-		if len(token) > 10 {
-			token = token[0:10]
-		}
-
-		singleWordTerms = append(singleWordTerms, token)
-	}
-
-	biWordTerms := []string{}
-	for i := 0; i < len(singleWordTerms)-1; i++ {
-		biWordTerms = append(biWordTerms, singleWordTerms[i]+"-"+singleWordTerms[i+1])
-	}
-
-	outM := map[string]bool{}
-	for _, term := range singleWordTerms {
-		outM[term] = true
-	}
-
-	for _, term := range biWordTerms {
-		outM[term] = true
-	}
-
-	out := []string{}
-	for term := range outM {
-		out = append(out, term)
-	}
-
-	return out
-}
-
 // Search all docs that match the query
 func Search(collection, accid, ownerid, query string) ([]string, error) {
 	waitforstartup(collection, accid)

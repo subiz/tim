@@ -10,7 +10,7 @@ type MatchLiteral struct {
 	Psrc []int
 }
 
-func tokenizeLiteral(str string) []string {
+func tokenize(str string) []string {
 	literals := make([]*MatchLiteral, 0)
 	biliterals := make([]*MatchLiteral, 0)
 	concreteliterals := make([]*MatchLiteral, 0)
@@ -24,10 +24,10 @@ func tokenizeLiteral(str string) []string {
 			continue
 		}
 		if _, has := Str_split_map[r]; has {
-			if len(token) > 0 && isLiteral(&token) {
+			if len(token) > 0 && !STOP_WORDS[string(token)] && isLiteral(&token) {
 				literals = append(literals, &MatchLiteral{Str: string(token)})
 			}
-			if len(prevtoken) > 0 && len(token) > 0 && isLiteral(&prevtoken) {
+			if len(prevtoken) > 0 && len(token) > 0 && !STOP_WORDS[string(token)] && isLiteral(&prevtoken) {
 				biliterals = append(biliterals, &MatchLiteral{Str: string(prevtoken) + " " + string(token)})
 			}
 			if len(token) > 0 && (Regexp_email.MatchString(string(token)) || Regexp_phone.MatchString(string(token))) {
