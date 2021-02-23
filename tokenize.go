@@ -96,7 +96,7 @@ const Vietnam_vowel = "i, e, ê, ư, u, o, ô, ơ, a, ă, â"
 
 var Vietnam_vowel_unaccented_map map[rune]struct{}
 
-var Str_split = " ,;:"
+var Str_split = ` ,;:/\`
 var Str_letter = "abcdefghijklmnopqrstuvwxyz"
 var Str_digit = "0123456789"
 var Str_special = "@-_."
