@@ -39,5 +39,5 @@ func TestGraph(t *testing.T) {
 		"Repeat":                 4344,
 		"function":               3434,
 	}
-	fmt.Println(drawGraph(D))
+	fmt.Println(drawGraph("T", D))
 }

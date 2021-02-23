@@ -62,3 +62,7 @@ func TestNGram(t *testing.T) {
 		}
 	}
 }
+
+func TestShards(t *testing.T)  {
+	fmt.Println(makeShards(10))
+}

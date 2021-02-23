@@ -352,7 +352,7 @@ func isASCII(s string) bool {
 	return true
 }
 
-func Report(collection string) {
+func Report(collection, accid string) {
 	// connect db
 	cluster := gocql.NewCluster("db-0")
 	cluster.Timeout = 10 * time.Second
@@ -366,19 +366,49 @@ func Report(collection string) {
 		time.Sleep(5 * time.Second)
 	}
 
-	// filter all data
-
-	// top 100 term
-	// random 1000
 	full := map[string]int{}
-	iter := db.Query("SELECT term FROM tim.term_doc").Iter()
-	term := ""
-	for iter.Scan(&term) {
-		full[term]++
-	}
-	if err := iter.Close(); err != nil {
-		panic(err)
-	}
 
-	fmt.Println(drawGraph(full))
+	shards := makeShards(20) // run 20 threads
+	wg := sync.WaitGroup{}
+
+	mutex := &sync.Mutex{}
+	wg.Add(len(shards))
+	for _, tokens := range shards {
+		go func(fromtoken, totoken int64) {
+			iter := db.Query("SELECT col,acc,term FROM tim.term_doc WHERE token(col,acc,term)>=? AND token(col,acc,term)<=?", fromtoken, totoken).Iter()
+			acc, col, term := "", "", ""
+
+			for iter.Scan(&col, &acc, &term) {
+				if accid != "" && acc != accid {
+					continue
+				}
+				if collection != "" && col != collection {
+					continue
+				}
+				mutex.Lock()
+				full[term]++
+				mutex.Unlock()
+			}
+			if err := iter.Close(); err != nil {
+				panic(err)
+			}
+			wg.Done()
+		}(tokens[0], tokens[1])
+	}
+	wg.Wait()
+	fmt.Println("REPORT of total", len(full), "terms")
+	fmt.Println(drawGraph("FOR COLLECTION "+collection+"AND ACC"+accid, full))
+}
+
+func makeShards(n int) [][2]int64 {
+	d := (9223372036854775807 / n) * 2
+	out := make([][2]int64, n, n)
+
+	p := int64(-9223372036854775808)
+	for i := 0; i < n; i++ {
+		out[i] = [2]int64{p, p + int64(d) - 1}
+		p += int64(d)
+	}
+	out[n-1][1] = 9223372036854775807
+	return out
 }
