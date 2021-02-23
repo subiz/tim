@@ -123,6 +123,8 @@ func tokenize(text string) []string {
 
 // Search all docs that match the query
 func Search(collection, accid, ownerid, query string) ([]string, error) {
+	waitforstartup(collection, accid)
+
 	terms := tokenize(query)
 	if len(terms) == 0 {
 		return []string{}, nil
@@ -225,7 +227,6 @@ func AppendText(collection, accid, docId, text string) error {
 		if err := db.Query("INSERT INTO tim.term(col, acc, par, term) VALUES(?,?,?,?)", collection, accid, par, term).Exec(); err != nil {
 			return err
 		}
-		return nil
 	}
 	return nil
 }
