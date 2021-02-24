@@ -210,7 +210,7 @@ func UpdateOwner(collection, accid, docId string, owners []string) error {
 
 func Suggest(collection, accid, query string) []string {
 	waitforstartup(collection, accid)
-	return nil
+	return autocompleteMgr.KeysWithPrefix(collection, accid, query)
 }
 
 var autocompleteMgr *AutocompleteMgr
