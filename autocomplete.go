@@ -1,7 +1,9 @@
 package tim
 
 import (
+	"fmt"
 	"sync"
+	"time"
 
 	"github.com/armon/go-radix"
 )
@@ -41,11 +43,15 @@ func (mgr *AutocompleteMgr) GetPrefixTerm(col, accid string) *PrefixTerm {
 	if prefixTerm.isLoad {
 		return prefixTerm
 	}
+	start := time.Now()
 	terms := mgr.buildTermFunc(col, accid)
+	fmt.Println("LOADTERMMMM-DB", col, accid, time.Since(start))
+	start = time.Now()
 	for _, term := range terms {
 		prefixTerm.tree.Insert(term, nil)
 	}
 	prefixTerm.isLoad = true
+	fmt.Println("LOADTERMMMM-TREE", col, accid, time.Since(start))
 	return prefixTerm
 }
 
