@@ -199,8 +199,9 @@ func initEmailKit() {
 		Email_norm_map[r] = r
 	}
 	upperstr := strings.ToUpper(Email_letter)
-	for _, r := range upperstr {
-		Email_norm_map[r] = r
+	runeArr := []rune(Email_letter)
+	for i, r := range upperstr {
+		Email_norm_map[r] = runeArr[i]
 	}
 	for _, r := range Email_format {
 		Email_norm_map[r] = r
