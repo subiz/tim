@@ -13,7 +13,10 @@ type MatchLiteral struct {
 func tokenize(str string) []string {
 	tokens := make([]string, 0)
 	tokens = append(tokens, tokenizeLiteral(str)...)
-	tokens = append(tokens, Email_regexp.FindAllString(str, -1)...)
+	emails := Email_regexp.FindAllString(str, -1)
+	for _, email := range emails {
+		tokens = append(tokens, strings.ToLower(email))
+	}
 	tokens = append(tokens, findPersonalPhoneNumber(str)...)
 	return tokens
 }

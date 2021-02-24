@@ -4,6 +4,7 @@ package tim
 
 import (
 	"github.com/gocql/gocql"
+	"github.com/opentracing/opentracing-go/log"
 	"golang.org/x/text/runes"
 	"golang.org/x/text/transform"
 	"golang.org/x/text/unicode/norm"
@@ -212,6 +213,7 @@ func Suggest(collection, accid, query string) []string {
 	return nil
 }
 
+var autocompleteMgr *AutocompleteMgr
 var startupLock sync.Mutex
 var readyM map[string]bool
 
@@ -282,6 +284,21 @@ func waitforstartup(collection, accid string) {
 		}
 	}
 	readyM[collection+"-"+accid] = true
+
+	autocompleteMgr = NewPrefixTermMgr(func(fncol, fnaccid string) []string {
+		terms := make([]string, 0)
+		for par := 0; par < PAR; par++ {
+			iter := db.Query("SELECT term FROM tim.term WHERE col=? AND acc=? AND par=?", fncol, fnaccid, par).Iter()
+			var term string
+			for iter.Scan(&term) {
+				terms = append(terms, term)
+			}
+			if err := iter.Close(); err != nil {
+				log.Error(err)
+			}
+		}
+		return terms
+	})
 }
 
 var crc32q = crc32.MakeTable(crc32.IEEE)
