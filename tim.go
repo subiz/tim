@@ -373,13 +373,9 @@ func Report(collection, accid string) {
 	shards := makeShards(20) // run 20 threads
 	wg := sync.WaitGroup{}
 
-	mutex := &sync.Mutex{}
 	wg.Add(len(shards))
-
-	tree := NewBinaryTree(100)
-
+	counttime := time.Now()
 	// count first
-
 	var count int64
 	for _, tokens := range shards {
 		go func(fromtoken, totoken int64) {
@@ -395,11 +391,15 @@ func Report(collection, accid string) {
 		}(tokens[0], tokens[1])
 	}
 	wg.Wait()
-	fmt.Println("REPORT of total", count, "terms")
+	fmt.Println("REPORT of total", count, "terms. Took", time.Since(counttime))
 
+	statistime := time.Now()
 	percentToTakeTerm := float32(1000) / float32(count)
 	sample := map[string]int{}
 
+	tree := NewBinaryTree(100)
+	mutex := &sync.Mutex{}
+	wg.Add(len(shards))
 	for _, tokens := range shards {
 		go func(fromtoken, totoken int64) {
 			iter := db.Query("SELECT col,acc,term FROM tim.term_doc WHERE token(col,acc,term)>=? AND token(col,acc,term)<=?", fromtoken, totoken).Iter()
@@ -437,10 +437,17 @@ func Report(collection, accid string) {
 		}(tokens[0], tokens[1])
 	}
 	wg.Wait()
-	fmt.Println("TOP 100")
-	tree.Print()
+
+	top100 := tree.Array()
+	top100M := map[string]int{}
+	for _, item := range top100 {
+		top100M[item.col+"."+item.accid+"."+item.term] = item.count
+	}
+	fmt.Println("TOP 100. Took", time.Since(statistime))
+	fmt.Println(drawGraph(top100M))
 	fmt.Println("DISTRIBUTION")
 	fmt.Println(drawGraph(sample))
+
 }
 
 func makeShards(n int) [][2]int64 {
@@ -548,6 +555,20 @@ func printTree(node *binaryTreeNode) {
 	printTree(node.left)
 	fmt.Println(node.col, node.accid, node.term, ":", node.count)
 	printTree(node.right)
+}
+
+func arrayTree(out []*binaryTreeNode, node *binaryTreeNode) []*binaryTreeNode {
+	if node == nil {
+		return out
+	}
+	out = arrayTree(out, node.left)
+	out = append(out, node)
+	out = arrayTree(out, node.right)
+	return out
+}
+
+func (tree *binaryTree) Array() []*binaryTreeNode {
+	return arrayTree([]*binaryTreeNode{}, tree.root)
 }
 
 func (tree *binaryTree) Print() {

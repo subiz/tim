@@ -52,3 +52,16 @@ func TestBinaryTree(t *testing.T) {
 	tree.Add("subiz", "acc1", "your", 17)
 	tree.Print()
 }
+
+func TestBinaryTreeArray(t *testing.T) {
+	tree := NewBinaryTree(4)
+	tree.Add("subiz", "acc1", "your", 24)
+	tree.Add("subiz", "acc1", "your", 15)
+
+	tree.Add("subiz", "acc1", "your", 18)
+	tree.Add("subiz", "acc1", "your", 19)
+	tree.Add("subiz", "acc1", "your", 16)
+	tree.Add("subiz", "acc1", "your", 17)
+
+	fmt.Println(tree.Array())
+}
