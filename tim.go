@@ -10,9 +10,11 @@ import (
 
 	"fmt"
 	"hash/crc32"
+	"math/rand"
 	"sort"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"time"
 	"unicode"
 )
@@ -353,6 +355,8 @@ func isASCII(s string) bool {
 }
 
 func Report(collection, accid string) {
+	rand.Seed(time.Now().UnixNano())
+
 	// connect db
 	cluster := gocql.NewCluster("db-0")
 	cluster.Timeout = 10 * time.Second
@@ -366,28 +370,23 @@ func Report(collection, accid string) {
 		time.Sleep(5 * time.Second)
 	}
 
-	full := map[string]int{}
-
 	shards := makeShards(20) // run 20 threads
 	wg := sync.WaitGroup{}
 
 	mutex := &sync.Mutex{}
 	wg.Add(len(shards))
+
+	tree := NewBinaryTree(100)
+
+	// count first
+
+	var count int64
 	for _, tokens := range shards {
 		go func(fromtoken, totoken int64) {
-			iter := db.Query("SELECT col,acc,term FROM tim.term_doc WHERE token(col,acc,term)>=? AND token(col,acc,term)<=?", fromtoken, totoken).Iter()
-			acc, col, term := "", "", ""
-
-			for iter.Scan(&col, &acc, &term) {
-				if accid != "" && acc != accid {
-					continue
-				}
-				if collection != "" && col != collection {
-					continue
-				}
-				mutex.Lock()
-				full[term]++
-				mutex.Unlock()
+			iter := db.Query("SELECT term FROM tim.term_doc WHERE token(col,acc,term)>=? AND token(col,acc,term)<=?", fromtoken, totoken).Iter()
+			term := ""
+			for iter.Scan(&term) {
+				atomic.AddInt64(&count, 1)
 			}
 			if err := iter.Close(); err != nil {
 				panic(err)
@@ -396,8 +395,52 @@ func Report(collection, accid string) {
 		}(tokens[0], tokens[1])
 	}
 	wg.Wait()
-	fmt.Println("REPORT of total", len(full), "terms")
-	fmt.Println(drawGraph("FOR COLLECTION "+collection+"AND ACC"+accid, full))
+	fmt.Println("REPORT of total", count, "terms")
+
+	percentToTakeTerm := float32(1000) / float32(count)
+	sample := map[string]int{}
+
+	for _, tokens := range shards {
+		go func(fromtoken, totoken int64) {
+			iter := db.Query("SELECT col,acc,term FROM tim.term_doc WHERE token(col,acc,term)>=? AND token(col,acc,term)<=?", fromtoken, totoken).Iter()
+			acc, col, term := "", "", ""
+
+			lastterm, lastacc, lastcol, count := "", "", "", 0
+			for iter.Scan(&col, &acc, &term) {
+				if lastterm != term || lastacc != acc || lastcol != col {
+					if lastterm != "" {
+						mutex.Lock()
+						tree.Add(lastcol, lastacc, lastterm, count)
+						if rand.Float32() <= percentToTakeTerm {
+							sample[lastcol+"."+lastacc+"."+lastterm] = count
+						}
+						mutex.Unlock()
+					}
+					count = 0
+					lastterm = term
+					lastacc = acc
+					lastcol = col
+				}
+				count++
+			}
+			if err := iter.Close(); err != nil {
+				panic(err)
+			}
+
+			if lastterm != "" {
+				mutex.Lock()
+				tree.Add(lastcol, lastacc, lastterm, count)
+				mutex.Unlock()
+			}
+
+			wg.Done()
+		}(tokens[0], tokens[1])
+	}
+	wg.Wait()
+	fmt.Println("TOP 100")
+	tree.Print()
+	fmt.Println("DISTRIBUTION")
+	fmt.Println(drawGraph(sample))
 }
 
 func makeShards(n int) [][2]int64 {
@@ -411,4 +454,102 @@ func makeShards(n int) [][2]int64 {
 	}
 	out[n-1][1] = 9223372036854775807
 	return out
+}
+
+type binaryTreeNode struct {
+	count int
+	term  string
+	accid string
+	col   string
+	left  *binaryTreeNode
+	right *binaryTreeNode
+}
+
+type binaryTree struct {
+	maxNodes int
+	root     *binaryTreeNode
+	count    int
+}
+
+func NewBinaryTree(size int) binaryTree {
+	return binaryTree{maxNodes: size}
+}
+
+func (tree *binaryTree) Add(col, accid, term string, count int) {
+	tree.add_internal(tree.root, col, accid, term, count)
+}
+
+func (tree *binaryTree) trim() {
+	if tree.count <= tree.maxNodes {
+		return
+	}
+
+	if tree.root == nil {
+		return
+	}
+
+	tree.count--
+	if tree.count < 0 {
+		tree.count = 0
+	}
+
+	// 1 special case, remove root node
+	if tree.root.left == nil {
+		tree.root = tree.root.right
+		return
+	}
+
+	removeLeftMostLeaf(nil, tree.root)
+}
+
+func removeLeftMostLeaf(parent, node *binaryTreeNode) {
+	if node.left == nil {
+		parent.left = node.right
+		return
+	}
+
+	removeLeftMostLeaf(node, node.left)
+}
+
+func (tree *binaryTree) add_internal(node *binaryTreeNode, col, accid, term string, count int) {
+	if node == nil { // root node is nil
+		tree.root = &binaryTreeNode{count: count, term: term, accid: accid, col: col}
+		tree.count = 1
+		return
+	}
+
+	// add to the left
+	if node.count >= count {
+		if node.left == nil {
+			tree.count++
+			node.left = &binaryTreeNode{count: count, term: term, accid: accid, col: col}
+			tree.trim()
+			return
+		}
+		tree.add_internal(node.left, col, accid, term, count)
+		return
+	}
+
+	// add to the right
+	if node.right == nil {
+		tree.count++
+		node.right = &binaryTreeNode{count: count, term: term, accid: accid, col: col}
+		tree.trim()
+		return
+	}
+
+	tree.add_internal(node.right, col, accid, term, count)
+}
+
+func printTree(node *binaryTreeNode) {
+	if node == nil {
+		return
+	}
+	printTree(node.left)
+	fmt.Println(node.col, node.accid, node.term, ":", node.count)
+	printTree(node.right)
+}
+
+func (tree *binaryTree) Print() {
+	printTree(tree.root)
 }

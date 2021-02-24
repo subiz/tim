@@ -39,5 +39,16 @@ func TestGraph(t *testing.T) {
 		"Repeat":                 4344,
 		"function":               3434,
 	}
-	fmt.Println(drawGraph("T", D))
+	fmt.Println(drawGraph(D))
+}
+
+func TestBinaryTree(t *testing.T) {
+	tree := NewBinaryTree(4)
+	tree.Add("subiz", "acc1", "your", 24)
+	tree.Add("subiz", "acc1", "your", 15)
+	tree.Add("subiz", "acc1", "your", 18)
+	tree.Add("subiz", "acc1", "your", 19)
+	tree.Add("subiz", "acc1", "your", 16)
+	tree.Add("subiz", "acc1", "your", 17)
+	tree.Print()
 }
