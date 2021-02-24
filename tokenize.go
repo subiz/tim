@@ -180,13 +180,11 @@ const Vietnam_vowel = "i, e, ê, ư, u, o, ô, ơ, a, ă, â"
 
 var Vietnam_vowel_unaccented_map map[rune]struct{}
 
-var Str_split = ` ,;:/\&=@.`
 var Str_letter = "abcdefghijklmnopqrstuvwxyz"
 var Str_digit = "0123456789"
 var Str_special = "-_"
 
 var Norm_map map[rune]rune
-var Str_split_map map[rune]struct{}
 
 const RegexPhone = `([0-9._-]{3,})`
 
@@ -235,15 +233,13 @@ func init() {
 	for _, r := range Str_digit {
 		Norm_map[r] = r
 	}
-	Str_split_map = make(map[rune]struct{})
-	for _, r := range Str_split {
-		// Norm_map[r] = r
-		Str_split_map[r] = struct{}{}
-	}
 	for _, r := range Str_special {
 		Norm_map[r] = r
 	}
 
+	for vi, r := range Vietnam_letter {
+		Norm_map[vi] = r
+	}
 	accentedLetters := make([]rune, len(Vietnam_letter))
 	unaccentedLetters := make([]rune, len(Vietnam_letter))
 	lindex := 0
@@ -258,9 +254,8 @@ func init() {
 		upperaccentedLetters[upperalindex] = r
 		upperalindex++
 	}
-
-	for vi, r := range Vietnam_letter {
-		Norm_map[vi] = r
+	for i, upperal := range upperaccentedLetters {
+		Norm_map[upperal] = unaccentedLetters[i]
 	}
 
 	Vietnam_vowel_unaccented_map = make(map[rune]struct{})
