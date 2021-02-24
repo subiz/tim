@@ -73,13 +73,24 @@ func (mgr *AutocompleteMgr) Inserts(col, accid string, terms []string) {
 
 func (mgr *AutocompleteMgr) KeysWithPrefix(col, accid, prefix string) []string {
 	prefixTerm := mgr.GetPrefixTerm(col, accid)
-	out := []string{}
+	terms := []string{}
 	fn := func(s string, v interface{}) bool {
-		out = append(out, s)
+		terms = append(terms, s)
 		return false
 	}
 	prefixTerm.Lock()
 	prefixTerm.tree.WalkPrefix(prefix, fn)
 	prefixTerm.Unlock()
+	limit := 5
+	if len(terms) <= limit {
+		return terms
+	}
+	out := make([]string, limit)
+	k := len(terms) / limit
+	j := 0
+	for i := 0; i < limit; i++ {
+		out[i] = terms[j]
+		j += k
+	}
 	return out
 }
