@@ -74,10 +74,24 @@ import (
 // see http://www.clc.hcmus.edu.vn/?page_id=1507
 var STOP_WORDS = map[string]bool{"va": true, "cua": true, "co": true, "cac": true, "la": true}
 
-// Search all docs that match the query
-func Search(collection, accid, ownerid, query string) ([]string, error) {
-	waitforstartup(collection, accid)
+func getOwners(collection, accid, doc string) []string {
+	return []string{}
+	/*
+		owners := []string{}
 
+		ownerLock.Lock()
+		owners := ownerM[hash(collection+"-"+accid)][hash(doc)]
+		for _, owner := range owners {
+			owners = append(owners, owner)
+		}
+		ownerLock.Unlock()
+		return owners
+	*/
+}
+
+// Search all docs that match the query
+func Search(collection, accid, query string, of []string, limit int) ([]string, error) {
+	waitforstartup(collection, accid)
 	terms := tokenize(query)
 	if len(terms) == 0 {
 		return []string{}, nil
@@ -86,62 +100,59 @@ func Search(collection, accid, ownerid, query string) ([]string, error) {
 	// order by length desc
 	sort.Slice(terms, func(i, j int) bool { return len(terms[i]) > len(terms[j]) })
 
-	owneridhash := hash(ownerid)
-
-	// match docs must statisfy all terms
-	// find term by by term and intersect the results
-	// start by the most lengthy term so we can soon drop the unneeded docs
-
 	// contain all matched doc
-	match := map[string]bool{}
-	for termindex, term := range terms {
-		iter := db.Query("SELECT doc FROM tim.term_doc WHERE col=? AND acc=? AND term=?", collection, accid, term).Iter()
-		var docid string
-		localMatch := map[string]bool{}
-		for iter.Scan(&docid) {
-			// quick escape since we know this docid will never match
-			if termindex != 0 && !match[docid] {
+	hits := []string{}
+	iter := db.Query("SELECT doc FROM tim.term_doc WHERE col=? AND acc=? AND term=?", collection, accid, terms[0]).Iter()
+	var docid string
+	for iter.Scan(&docid) {
+		valid := true
+
+		// the doc must match owners condition
+		if len(of) > 0 {
+			owners := getOwners(collection, accid, docid)
+			found := false
+			for _, o := range of {
+				for _, co := range owners {
+					if o == co {
+						found = true
+						break
+					}
+					if found {
+						break
+					}
+				}
+			}
+			valid = found
+		}
+
+		if !valid {
+			continue
+		}
+
+		// the doc must exists in all other term
+		for i, term := range terms {
+			if i == 0 {
 				continue
 			}
-
-			ownerLock.Lock()
-			owners := ownerM[hash(collection+"-"+accid)][hash(docid)]
-			for _, owner := range owners {
-				if owner == owneridhash {
-					localMatch[docid] = true
-					break
-				}
-			}
-			ownerLock.Unlock()
-		}
-
-		if err := iter.Close(); err != nil {
-			return nil, err
-		}
-
-		if termindex == 0 {
-			match = localMatch
-		} else {
-			// AND match with localMatch
-			for doc := range match {
-				if !localMatch[doc] {
-					delete(match, doc)
-				}
+			dump := ""
+			db.Query("SELECT doc FROM tim.term_doc WHERE col=? AND acc=? AND term=? AND doc=? LIMIT 1", collection, accid, term, docid).Scan(&dump)
+			if dump == "" {
+				valid = false
+				break
 			}
 		}
 
-		// early escape when nothing matched
-		if len(match) == 0 {
+		if !valid {
+			continue
+
+		}
+		hits = append(hits, docid)
+		if len(hits) >= limit {
 			break
 		}
 	}
-
-	hits := []string{}
-	for doc := range match {
-		if len(hits) > 200 {
-			break
-		}
-		hits = append(hits, doc)
+	if err := iter.Close(); err != nil {
+		return nil, err
 	}
 	return hits, nil
 }
@@ -192,19 +203,21 @@ func UpdateOwner(collection, accid, docId string, owners []string) error {
 	if err != nil {
 		return err
 	}
-	colhash := hash(collection + "-" + accid)
 
-	ownerLock.Lock()
-	if ownerM[colhash] == nil {
-		ownerM[colhash] = make(map[uint32][]uint32)
-	}
-	dochash := hash(docId)
-	ownerhashs := make([]uint32, len(owners), len(owners))
-	for i, owner := range owners {
-		ownerhashs[i] = hash(owner)
-	}
-	ownerM[colhash][dochash] = ownerhashs
-	ownerLock.Unlock()
+	/*
+colhash := hash(collection + "-" + accid)
+		ownerLock.Lock()
+		if ownerM[colhash] == nil {
+			ownerM[colhash] = make(map[uint32][]uint32)
+		}
+		dochash := hash(docId)
+		ownerhashs := make([]uint32, len(owners), len(owners))
+		for i, owner := range owners {
+			ownerhashs[i] = hash(owner)
+		}
+		ownerM[colhash][dochash] = ownerhashs
+		ownerLock.Unlock()
+	*/
 	return nil
 }
 
@@ -258,6 +271,25 @@ func waitforstartup(collection, accid string) {
 		}
 	}
 
+	readyM[collection+"-"+accid] = true
+
+	autocompleteMgr = NewPrefixTermMgr(func(fncol, fnaccid string) []string {
+		terms := make([]string, 0)
+		for par := 0; par < TERM_PAR; par++ {
+			iter := db.Query("SELECT term FROM tim.term WHERE col=? AND acc=? AND par=?", fncol, fnaccid, par).Iter()
+			var term string
+			for iter.Scan(&term) {
+				terms = append(terms, term)
+			}
+			if err := iter.Close(); err != nil {
+				log.Error(err)
+			}
+		}
+		return terms
+	})
+}
+
+func loadOnwerToCache(collection, accid string) {
 	// build owner map for collection acc
 	colhash := hash(collection + "-" + accid)
 
@@ -283,22 +315,6 @@ func waitforstartup(collection, accid string) {
 			panic(err)
 		}
 	}
-	readyM[collection+"-"+accid] = true
-
-	autocompleteMgr = NewPrefixTermMgr(func(fncol, fnaccid string) []string {
-		terms := make([]string, 0)
-		for par := 0; par < PAR; par++ {
-			iter := db.Query("SELECT term FROM tim.term WHERE col=? AND acc=? AND par=?", fncol, fnaccid, par).Iter()
-			var term string
-			for iter.Scan(&term) {
-				terms = append(terms, term)
-			}
-			if err := iter.Close(); err != nil {
-				log.Error(err)
-			}
-		}
-		return terms
-	})
 }
 
 var crc32q = crc32.MakeTable(crc32.IEEE)
