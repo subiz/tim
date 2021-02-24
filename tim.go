@@ -160,7 +160,7 @@ func ClearText(collection, accid, docId string) error {
 		return err
 	}
 
-	if err := db.Query("DELETE FROM tim.doc_term WHERE col=? AND acc=? AND AND doc=?", collection, accid, docId).Exec(); err != nil {
+	if err := db.Query("DELETE FROM tim.doc_term WHERE col=? AND acc=? AND doc=?", collection, accid, docId).Exec(); err != nil {
 		return err
 	}
 	return nil
