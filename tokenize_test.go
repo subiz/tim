@@ -6,7 +6,11 @@ import (
 )
 
 func TestTokenizeLiteral(t *testing.T) {
-	str := "可口的 1 _ - 123 accompaniment nnn Trụ sở: (Tầng 6), tòa nhà Kailash, ngõ 92 Trần Thái Tông, Di3u@gmail.com Phường Dịch Vọng Hậu, Quận Cầu Giấy, Hà Nội (84)123123211 dieu  https://translate.google.com/?hl=vi&sl=en&tl=vi&text=concrete&op=translate pneumonoultramicroscopicsilicovolcanoconiosis viet nam. hello viet.nam"
+	str := `可口的 1 _ - 123 accompaniment nnn Trụ sở: (Tầng 6), tòa nhà Kailash,
+		ngõ 92 Trần Thái Tông, Di3u@gmail.com Phường Dịch Vọng Hậu, Quận Cầu Giấy, Hà Nội (84)123123211 dieu
+		https://translate.google.com/?hl=vi&sl=en&tl=vi&text=concrete&op=translate
+		pneumonoultramicroscopicsilicovolcanoconiosis viet nam. hello viet.nam
+		va co gmail com`
 	literals := tokenize(str)
 	fmt.Printf("%#v", literals)
 	if true {

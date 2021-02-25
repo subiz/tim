@@ -71,9 +71,6 @@ import (
 
 // text => term
 
-// see http://www.clc.hcmus.edu.vn/?page_id=1507
-var STOP_WORDS = map[string]bool{"va": true, "cua": true, "co": true, "cac": true, "la": true}
-
 func getOwners(collection, accid, doc string) []string {
 	return []string{}
 	/*

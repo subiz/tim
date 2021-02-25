@@ -120,10 +120,10 @@ func tokenizeLiteral(str string) []string {
 		}
 		literal := string(normtoken)
 		// TODO trim format rune
-		if len(literal) > 0 && !STOP_WORDS[literal] && isLiteral(literal) {
+		if len(literal) > 0 && !Stopword_map[literal] && isLiteral(literal) {
 			literals = append(literals, &MatchLiteral{Str: literal})
 		}
-		if len(prevliteral) > 0 && len(literal) > 0 && !STOP_WORDS[literal] && isLiteral(prevliteral) {
+		if len(prevliteral) > 0 && len(literal) > 0 && !Stopword_map[literal] && isLiteral(prevliteral) {
 			biliterals = append(biliterals, &MatchLiteral{Str: string(prevliteral) + " " + literal})
 		}
 
@@ -192,6 +192,12 @@ var Norm_map map[rune]rune
 const RegexPhone = `([0-9._-]{3,})`
 
 var Regexp_phone = regexp.MustCompile(RegexPhone)
+
+// see http://www.clc.hcmus.edu.vn/?page_id=1507
+const Stopword_vi = "va, cua, co, cac, la"
+const Stopword_heuristic = "gmail, com"
+
+var Stopword_map map[string]bool
 
 func initEmailKit() {
 	Email_norm_map = make(map[rune]rune)
@@ -267,5 +273,11 @@ func init() {
 		if nr, has := Norm_map[r]; has {
 			Vietnam_vowel_unaccented_map[nr] = struct{}{}
 		}
+	}
+
+	Stopword_map = map[string]bool{}
+	stopwordstr := Stopword_vi + ", " + Stopword_heuristic
+	for _, word := range strings.Split(stopwordstr, ", ") {
+		Stopword_map[word] = true
 	}
 }
