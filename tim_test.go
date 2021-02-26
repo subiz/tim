@@ -7,7 +7,7 @@ import (
 )
 
 func TestLongQuery(t *testing.T) {
-	interms := tokenize("cong hoa xahoi chu")
+	interms := Tokenize("cong hoa xahoi chu")
 	fmt.Printf("%#v\n", interms)
 	var terms []string
 	if len(interms) > 5 {
@@ -43,7 +43,7 @@ func TestTokenize(t *testing.T) {
  thanh`, "pham kieu thanh pham-kieu kieu-thanh"},
 	}
 	for _, tc := range testCases {
-		out := tokenize(tc.in)
+		out := Tokenize(tc.in)
 		if len(out) != len(strings.Split(tc.out, " ")) {
 			fmt.Println(out)
 			t.Errorf("Len should be eq for tc %s", tc.in)

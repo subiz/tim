@@ -11,12 +11,12 @@ func TestTokenizeLiteral(t *testing.T) {
 		https://translate.google.com/?hl=vi&sl=en&tl=vi&text=concrete&op=translate
 		pneumonoultramicroscopicsilicovolcanoconiosis viet nam. hello viet.nam
 		va co gmail com`
-	literals := tokenize(str)
+	literals := Tokenize(str)
 	fmt.Printf("%#v", literals)
 	fmt.Println("")
-	fmt.Printf("%#v", tokenize("cong hoa xa"))
-	fmt.Printf("%#v", tokenize("cong hoa xa hoi chu nghia viet nam"))
-	fmt.Printf("%#v", tokenize("cong, hoa, xa, hoi"))
+	fmt.Printf("%#v", Tokenize("cong hoa xa"))
+	fmt.Printf("%#v", Tokenize("cong hoa xa hoi chu nghia viet nam"))
+	fmt.Printf("%#v", Tokenize("cong, hoa, xa, hoi"))
 	if true {
 		t.Error("TRUE")
 	}
