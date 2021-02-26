@@ -6,6 +6,33 @@ import (
 	"testing"
 )
 
+func TestLongQuery(t *testing.T) {
+	interms := tokenize("cong hoa xahoi chu")
+	fmt.Printf("%#v\n", interms)
+	var terms []string
+	if len(interms) > 5 {
+		biwords := make([]string, 0)
+		for _, term := range interms {
+			if strings.Contains(term, " ") {
+				biwords = append(biwords, term)
+			}
+		}
+		terms = make([]string, 0)
+		for i := 0; i < 2 && i < len(biwords); i++ {
+			terms = append(terms, biwords[i])
+		}
+		if len(terms) < 2 {
+			for i := 0; i < 4-len(terms); i++ {
+				terms = append(terms, interms[i])
+			}
+		}
+	} else {
+		terms = interms
+	}
+	fmt.Println(terms)
+	t.Error("TRUE")
+}
+
 func TestTokenize(t *testing.T) {
 	testCases := []struct {
 		in  string
@@ -63,6 +90,6 @@ func TestNGram(t *testing.T) {
 	}
 }
 
-func TestShards(t *testing.T)  {
+func TestShards(t *testing.T) {
 	fmt.Println(makeShards(10))
 }

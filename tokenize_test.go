@@ -13,6 +13,10 @@ func TestTokenizeLiteral(t *testing.T) {
 		va co gmail com`
 	literals := tokenize(str)
 	fmt.Printf("%#v", literals)
+	fmt.Println("")
+	fmt.Printf("%#v", tokenize("cong hoa xa"))
+	fmt.Printf("%#v", tokenize("cong hoa xa hoi chu nghia viet nam"))
+	fmt.Printf("%#v", tokenize("cong, hoa, xa, hoi"))
 	if true {
 		t.Error("TRUE")
 	}

@@ -89,9 +89,31 @@ func getOwners(collection, accid, doc string) []string {
 // Search all docs that match the query
 func Search(collection, accid, query string, of []string, limit int) ([]string, error) {
 	waitforstartup(collection, accid)
-	terms := tokenize(query)
-	if len(terms) == 0 {
+	interms := tokenize(query)
+	if len(interms) == 0 {
 		return []string{}, nil
+	}
+
+	// long query
+	var terms []string
+	if len(interms) > 5 {
+		biwords := make([]string, 0)
+		for _, term := range interms {
+			if strings.Contains(term, " ") {
+				biwords = append(biwords, term)
+			}
+		}
+		terms = make([]string, 0)
+		for i := 0; i < 2 && i < len(biwords); i++ {
+			terms = append(terms, biwords[i])
+		}
+		if len(terms) < 2 {
+			for i := 0; i < 5-len(terms); i++ {
+				terms = append(terms, interms[i])
+			}
+		}
+	} else {
+		terms = interms
 	}
 
 	// order by length desc
