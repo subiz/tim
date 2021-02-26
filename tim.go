@@ -72,7 +72,10 @@ import (
 // text => term
 
 func getOwners(collection, accid, doc string) []string {
-	return []string{}
+	var owners []string
+	par := hash(doc) % PAR
+	db.Query("SELECT owners FROM tim.owner WHERE col=? AND acc=? AND par=? AND doc=? LIMIT 1", collection, accid, par, doc).Scan(&owners)
+	return owners
 	/*
 		owners := []string{}
 
@@ -224,7 +227,7 @@ func UpdateOwner(collection, accid, docId string, owners []string) error {
 	}
 
 	/*
-colhash := hash(collection + "-" + accid)
+		colhash := hash(collection + "-" + accid)
 		ownerLock.Lock()
 		if ownerM[colhash] == nil {
 			ownerM[colhash] = make(map[uint32][]uint32)
