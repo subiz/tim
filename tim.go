@@ -89,7 +89,7 @@ func getOwners(collection, accid, doc string) []string {
 // Search all docs that match the query
 func Search(collection, accid, query string, of []string, limit int) ([]string, error) {
 	waitforstartup(collection, accid)
-	interms := tokenize(query)
+	interms := Tokenize(query)
 	if len(interms) == 0 {
 		return []string{}, nil
 	}
@@ -198,7 +198,7 @@ func ClearText(collection, accid, docId string) error {
 
 func AppendText(collection, accid, docId, text string) error {
 	waitforstartup(collection, accid)
-	terms := tokenize(text)
+	terms := Tokenize(text)
 	for _, term := range terms {
 		if err := db.Query("INSERT INTO tim.term_doc(col, acc, term, doc) VALUES(?,?,?,?)", collection, accid, term, docId).Exec(); err != nil {
 			return err

@@ -10,7 +10,7 @@ type MatchLiteral struct {
 	Psrc []int
 }
 
-func tokenize(str string) []string {
+func Tokenize(str string) []string {
 	tokens := make([]string, 0)
 	tokens = append(tokens, tokenizeLiteral(str)...)
 	emails := Email_regexp.FindAllString(str, -1)
