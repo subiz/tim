@@ -124,7 +124,7 @@ func Search(collection, accid, query string, of []string, limit int) ([]string, 
 
 	// contain all matched doc
 	hits := []string{}
-	iter := db.Query("SELECT doc FROM tim.term_doc WHERE col=? AND acc=? AND term=?", collection, accid, terms[0]).Iter()
+	iter := db.Query("SELECT doc FROM tim.term_doc WHERE col=? AND acc=? AND term=? ORDER BY doc DESC", collection, accid, terms[0]).Iter()
 	var docid string
 	for iter.Scan(&docid) {
 		valid := true
