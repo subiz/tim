@@ -309,6 +309,7 @@ func waitforstartup(collection, accid string) {
 		}
 		return terms
 	})
+	autocompleteMgr.AsyncTerm()
 }
 
 func loadOnwerToCache(collection, accid string) {
